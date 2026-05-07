@@ -624,8 +624,10 @@ function calcFromTest() {
   document.getElementById("ftp-display").textContent = ftpStr;
   document.getElementById("ftpInput").value = ftpStr;
 
-  // Auto-apply zones
-  recalcZones();
+  // Light update: zones + volumes in-place (preserves active tab & edited dates)
+  renderZones(ftpSec);
+  updateVolumes();
+  renderSummary();
 }
 
 // ─── Zone calc ────────────────────────────────────────────────────────────────
@@ -712,11 +714,13 @@ function shoeTag(type) {
 }
 
 // ─── Render weeks ─────────────────────────────────────────────────────────────
+let activeWeek = 0;
+
 function renderWeeks() {
   const ftpSec = getCurrentFtp();
   const container = document.getElementById("weeksContainer");
   container.innerHTML = WEEKS.map((w, wi) => `
-    <div class="week-panel${wi === 0 ? " active" : ""}" id="week-${wi}">
+    <div class="week-panel${wi === activeWeek ? " active" : ""}" id="week-${wi}">
       <div class="week-header">
         <span>${w.label}</span>
         <span class="dates">
@@ -727,7 +731,7 @@ function renderWeeks() {
         </span>
       </div>
       <div class="trainings-grid">
-        ${w.trainings.map(t => `
+        ${w.trainings.map((t, ti) => `
           <div class="training-card">
             <div class="training-header">
               <span class="t-badge">${t.id}</span>
@@ -743,7 +747,7 @@ function renderWeeks() {
             </div>
             <div class="training-stats">
               <div class="stat-cell"><div class="s-label">Duração</div><div class="s-val">${t.duracao}</div></div>
-              <div class="stat-cell"><div class="s-label">Volume</div><div class="s-val">${(calcVolume(t, ftpSec)/1000).toFixed(2).replace(".", ",")} km</div></div>
+              <div class="stat-cell"><div class="s-label">Volume</div><div class="s-val" id="vol-${wi}-${ti}">${(calcVolume(t, ftpSec)/1000).toFixed(2).replace(".", ",")} km</div></div>
             </div>
             <div class="intensity-bar">
               <div class="ibar-labels"><span style="color:#22c55e">L ${t.lmh[0]}%</span><span style="color:#f97316">M/H ${t.lmh[1]}%</span></div>
@@ -755,6 +759,17 @@ function renderWeeks() {
           </div>`).join("")}
       </div>
     </div>`).join("");
+}
+
+// Update only volume cells in-place (no full re-render)
+function updateVolumes() {
+  const ftpSec = getCurrentFtp();
+  WEEKS.forEach((w, wi) => {
+    w.trainings.forEach((t, ti) => {
+      const el = document.getElementById(`vol-${wi}-${ti}`);
+      if (el) el.textContent = (calcVolume(t, ftpSec) / 1000).toFixed(2).replace(".", ",") + " km";
+    });
+  });
 }
 
 // ─── Summary ──────────────────────────────────────────────────────────────────
@@ -802,6 +817,7 @@ function renderRPE() {
 
 // ─── Tab switch ───────────────────────────────────────────────────────────────
 function showWeek(idx, tab) {
+  activeWeek = idx;
   document.querySelectorAll(".week-panel").forEach(p => p.classList.remove("active"));
   document.querySelectorAll(".week-tab").forEach(t => t.classList.remove("active"));
   document.getElementById("week-" + idx).classList.add("active");
