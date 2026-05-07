@@ -724,9 +724,9 @@ function renderWeeks() {
       <div class="week-header">
         <span>${w.label}</span>
         <span class="dates">
-          <input class="date-input" value="${w.start}" title="Clique para editar" onchange="WEEKS[${wi}].start=this.value" />
+          <input class="date-input" value="${w.start}" title="Clique para editar" onchange="WEEKS[${wi}].start=this.value; saveState()" />
           <span style="opacity:.6">→</span>
-          <input class="date-input" value="${w.end}" title="Clique para editar" onchange="WEEKS[${wi}].end=this.value" />
+          <input class="date-input" value="${w.end}" title="Clique para editar" onchange="WEEKS[${wi}].end=this.value; saveState()" />
           <span class="edit-hint" title="Datas editáveis">✎</span>
         </span>
       </div>
@@ -824,19 +824,53 @@ function showWeek(idx, tab) {
   tab.classList.add("active");
 }
 
+// ─── Persistência (localStorage) ─────────────────────────────────────────────
+const STORAGE_KEY = "corrida_dashboard_v1";
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    testTime: document.getElementById("testInput").value,
+    ftpManual: document.getElementById("ftpInput").value,
+    weekDates: WEEKS.map(w => ({ start: w.start, end: w.end }))
+  }));
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    if (s.testTime) document.getElementById("testInput").value = s.testTime;
+    if (s.ftpManual) document.getElementById("ftpInput").value = s.ftpManual;
+    if (s.weekDates) {
+      s.weekDates.forEach((d, i) => {
+        if (WEEKS[i]) { WEEKS[i].start = d.start; WEEKS[i].end = d.end; }
+      });
+    }
+    return true;
+  } catch(e) { return false; }
+}
+
 // ─── Enter keys ───────────────────────────────────────────────────────────────
 document.getElementById("ftpInput").addEventListener("keydown", e => {
-  if (e.key === "Enter") recalcZones();
+  if (e.key === "Enter") { recalcZones(); saveState(); }
 });
 document.getElementById("testInput").addEventListener("keydown", e => {
-  if (e.key === "Enter") calcFromTest();
+  if (e.key === "Enter") { calcFromTest(); saveState(); }
+});
+document.getElementById("testInput").addEventListener("change", () => {
+  calcFromTest(); saveState();
+});
+document.getElementById("ftpInput").addEventListener("change", () => {
+  recalcZones(); saveState();
 });
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 renderWeeks();
 renderSummary();
 renderRPE();
-calcFromTest(); // derives FTP from test and renders everything
+loadState();    // restore saved values if any
+calcFromTest(); // derive FTP from (possibly restored) test time and render
 </script>
 </body>
 </html>
