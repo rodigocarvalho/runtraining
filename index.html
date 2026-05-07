@@ -111,7 +111,14 @@
       gap: 10px;
       margin-bottom: 28px;
     }
-    @media (max-width: 700px) { .zones-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 700px) {
+      .zones-grid { grid-template-columns: 1fr 1fr; }
+      .zones-grid .zone-card:last-child {
+        grid-column: 1 / -1;
+        max-width: calc(50% - 5px);
+        margin: 0 auto;
+      }
+    }
     .zone-card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -310,7 +317,11 @@
       gap: 8px;
       margin-bottom: 28px;
     }
-    @media (max-width: 600px) { .rpe-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 600px) {
+      .rpe-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+      .rpe-row { flex-direction: column; align-items: center; text-align: center; padding: 10px 6px; gap: 5px; }
+      .rpe-text .rpe-desc { display: none; }
+    }
     .rpe-row {
       background: var(--card);
       border: 1px solid var(--border);
@@ -367,6 +378,8 @@
     .bar-chart { width: 100%; height: 60px; display: flex; align-items: flex-end; justify-content: center; }
     .bar-rect { width: 28px; border-radius: 4px 4px 0 0; background: var(--accent); min-height: 4px; }
 
+    .vol-rpe-container { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px; }
+    @media (max-width: 600px) { .vol-rpe-container { grid-template-columns: 1fr; } }
     footer { text-align: center; color: var(--muted); font-size: .75rem; padding-top: 24px; border-top: 1px solid var(--border); margin-top: 12px; }
   </style>
 </head>
@@ -447,7 +460,7 @@
 <div class="section-title">Resumo do Volume — 4 Semanas</div>
 <div class="summary-grid" id="summaryGrid"></div>
 
-<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px;">
+<div class="vol-rpe-container">
   <!-- Volume bars -->
   <div>
     <div class="section-title">Volume por Semana</div>
@@ -821,7 +834,7 @@ function renderRPE() {
   document.getElementById("rpeGrid").innerHTML = `<div class="rpe-grid">${
     RPE.map(r => `<div class="rpe-row">
       <div class="rpe-num" style="background:${r.color}20; color:${r.color}">${r.n}</div>
-      <div class="rpe-text"><strong>${r.label}</strong>${r.desc}</div>
+      <div class="rpe-text"><strong>${r.label}</strong><span class="rpe-desc">${r.desc}</span></div>
     </div>`).join("")
   }</div>`;
 }
