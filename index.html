@@ -601,10 +601,22 @@ function getCurrentFtp() {
   return parsePace(document.getElementById("ftpInput").value) || 360;
 }
 
-// ─── 3km test → FTP ──────────────────────────────────────────────────────────
+// ─── 3km test → pace display (sem alterar FTP) ───────────────────────────────
+function updateTestDisplay() {
+  const raw = document.getElementById("testInput").value.trim();
+  const parts = raw.split(":");
+  if (parts.length !== 2) return;
+  const m = parseInt(parts[0]), s = parseInt(parts[1]);
+  if (isNaN(m) || isNaN(s)) return;
+  const totalSec = m * 60 + s;
+  if (totalSec <= 0) return;
+  const paceSec = totalSec / 3;
+  document.getElementById("test-pace").textContent = secToMMSS(paceSec);
+}
+
+// ─── 3km test → FTP (chamado quando usuário altera o tempo do teste) ──────────
 function calcFromTest() {
   const raw = document.getElementById("testInput").value.trim();
-  // Accept M:SS or MM:SS total time
   const parts = raw.split(":");
   if (parts.length !== 2) return;
   const m = parseInt(parts[0]), s = parseInt(parts[1]);
@@ -612,11 +624,10 @@ function calcFromTest() {
   const totalSec = m * 60 + s;
   if (totalSec <= 0) return;
 
-  // Pace = total time / 3 km
   const paceSec = totalSec / 3;
   const paceStr = secToMMSS(paceSec);
 
-  // FTP = pace × 1.06 (threshold is ~6% slower than 3km race pace)
+  // FTP = pace × 1.06
   const ftpSec = Math.round(paceSec * 1.06);
   const ftpStr = secToMMSS(ftpSec);
 
@@ -624,10 +635,10 @@ function calcFromTest() {
   document.getElementById("ftp-display").textContent = ftpStr;
   document.getElementById("ftpInput").value = ftpStr;
 
-  // Light update: zones + volumes in-place (preserves active tab & edited dates)
   renderZones(ftpSec);
   updateVolumes();
   renderSummary();
+  saveState();
 }
 
 // ─── Zone calc ────────────────────────────────────────────────────────────────
@@ -662,11 +673,11 @@ function secToSpeed(sec) {
 function recalcZones() {
   const ftpSec = parsePace(document.getElementById("ftpInput").value);
   if (!ftpSec) { alert("Digite o pace no formato M:SS (ex: 6:00)"); return; }
-  // Sync FTP display in case user edited manually
   document.getElementById("ftp-display").textContent = secToMMSS(ftpSec);
   renderZones(ftpSec);
-  renderWeeks();
+  updateVolumes();
   renderSummary();
+  saveState();
 }
 
 function renderZones(ftpSec) {
@@ -853,24 +864,26 @@ function loadState() {
 
 // ─── Enter keys ───────────────────────────────────────────────────────────────
 document.getElementById("ftpInput").addEventListener("keydown", e => {
-  if (e.key === "Enter") { recalcZones(); saveState(); }
+  if (e.key === "Enter") recalcZones();
 });
+document.getElementById("ftpInput").addEventListener("change", () => recalcZones());
 document.getElementById("testInput").addEventListener("keydown", e => {
-  if (e.key === "Enter") { calcFromTest(); saveState(); }
+  if (e.key === "Enter") calcFromTest();
 });
-document.getElementById("testInput").addEventListener("change", () => {
-  calcFromTest(); saveState();
-});
-document.getElementById("ftpInput").addEventListener("change", () => {
-  recalcZones(); saveState();
-});
+document.getElementById("testInput").addEventListener("change", () => calcFromTest());
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-renderWeeks();
-renderSummary();
 renderRPE();
-loadState();    // restore saved values if any
-calcFromTest(); // derive FTP from (possibly restored) test time and render
+const hasSaved = loadState(); // restore saved values first
+renderWeeks();                // render with restored dates
+if (hasSaved) {
+  // Use the saved FTP directly — don't overwrite with test calculation
+  updateTestDisplay();
+  recalcZones();
+} else {
+  // Fresh start: derive FTP from default test time
+  calcFromTest();
+}
 </script>
 </body>
 </html>
